@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "/Users/ajitesh/Desktop/dc_proj/ns-3-dev/scratch",
+      "program": "/Users/ajitesh/Desktop/dc_proj/ns-3-dev/scratch/build/Debug/outDebug"
+    }
+  ]
+}
