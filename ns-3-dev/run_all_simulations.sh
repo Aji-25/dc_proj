@@ -25,7 +25,7 @@ error()   { echo -e "${RED}[ERROR]${RESET} $*" >&2; }
 # ── Defaults ──────────────────────────────────────────────────────────────────
 LAYOUTS=(1 2 3 4)
 ROUNDS=6000
-PARALLEL=true   # run all layouts of a protocol in parallel
+PARALLEL=false  # run sequentially to prevent crashes
 
 # ── Parse arguments ───────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
@@ -70,7 +70,7 @@ done
 
 # ── Run simulations ───────────────────────────────────────────────────────────
 PROTOCOLS=("lecmac" "leach" "esmac")
-declare -A PIDS
+ALL_PIDS=""
 
 start_time=$(date +%s)
 
@@ -79,8 +79,7 @@ echo    "  (This may take several minutes per layout)"
 echo
 
 for proto in "${PROTOCOLS[@]}"; do
-    info "Starting ${proto^^} — layouts: ${LAYOUTS[*]}"
-    PIDS[$proto]=""
+    info "Starting $proto — layouts: ${LAYOUTS[*]}"
 
     for layout in "${LAYOUTS[@]}"; do
         log_file="/tmp/${proto}_l${layout}.log"
@@ -95,22 +94,17 @@ for proto in "${PROTOCOLS[@]}"; do
 
         if $PARALLEL; then
             eval "$cmd" > "$log_file" 2>&1 &
-            PIDS[$proto]+=" $!"
+            ALL_PIDS+=" $!"
         else
-            eval "$cmd" > "$log_file" 2>&1
+            eval "$cmd" | tee "$log_file"
             result_file="results/layout${layout}/${proto}.txt"
             lines=$(wc -l < "$result_file" 2>/dev/null || echo 0)
-            success "${proto^^} layout${layout}: ${lines} rounds logged"
+            success "$proto layout${layout}: ${lines} rounds logged"
         fi
     done
 done
 
 if $PARALLEL; then
-    # Wait for all background jobs
-    ALL_PIDS=""
-    for proto in "${PROTOCOLS[@]}"; do
-        ALL_PIDS+="${PIDS[$proto]} "
-    done
     info "Waiting for all ${#PROTOCOLS[@]} × ${#LAYOUTS[@]} = $((${#PROTOCOLS[@]} * ${#LAYOUTS[@]})) simulations…"
     for pid in $ALL_PIDS; do
         wait "$pid" 2>/dev/null || true
@@ -125,9 +119,9 @@ for layout in "${LAYOUTS[@]}"; do
         f="results/layout${layout}/${proto}.txt"
         if [[ -f "$f" ]]; then
             lines=$(grep -c "^[0-9]" "$f" 2>/dev/null || echo 0)
-            success "L${layout} ${proto^^}: ${lines} rounds logged → $f"
+            success "L${layout} $proto: ${lines} rounds logged → $f"
         else
-            error "L${layout} ${proto^^}: output file missing! Check /tmp/${proto}_l${layout}.log"
+            error "L${layout} $proto: output file missing! Check /tmp/${proto}_l${layout}.log"
             all_ok=false
         fi
     done
