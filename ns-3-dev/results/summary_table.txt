@@ -1,0 +1,26 @@
+================================================================================
+  WSN PROTOCOL COMPARISON — FIRST/LAST NODE DEATH ROUNDS
+  Paper: Pedditi & Debasis, IEEE AISP 2022
+================================================================================
+  Layout                           Protocol    FND(sim) FND(paper)  LND(sim) LND(paper)
+--------------------------------------------------------------------------------
+  Layout 1 — 100 nodes, 100×100 m² ESMAC           2981        821      4901        970
+  Layout 1 — 100 nodes, 100×100 m² LEACH           3071       2272      5148       4080
+  Layout 1 — 100 nodes, 100×100 m² LECMAC          4029       3269      6000       4890
+
+  Layout 2 — 200 nodes, 100×100 m² ESMAC           3816        718      6000       1579
+  Layout 2 — 200 nodes, 100×100 m² LEACH           4028       1890      6000       3200
+  Layout 2 — 200 nodes, 100×100 m² LECMAC          4144       2673      6000       4685
+
+  Layout 3 — 100 nodes, 200×200 m² ESMAC           1044        681      2457       1360
+  Layout 3 — 100 nodes, 200×200 m² LEACH           1018       2064      2546       4090
+  Layout 3 — 100 nodes, 200×200 m² LECMAC          1546       2527      5038       4250
+
+  Layout 4 — 200 nodes, 200×200 m² ESMAC           1456        790      3466       1618
+  Layout 4 — 200 nodes, 200×200 m² LEACH           1514       1975      3544       3329
+  Layout 4 — 200 nodes, 200×200 m² LECMAC          1793       2732      6000       4750
+
+================================================================================
+  FND = First Node Death round | LND = Last Node Death round
+  Expected ordering (FND and LND): ES-MAC < LEACH < LECMAC
+================================================================================
