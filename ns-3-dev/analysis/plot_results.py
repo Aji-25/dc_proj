@@ -197,99 +197,39 @@ def make_combined_figure(results_dir, layouts=(1,2,3,4)):
     print(f"  Saved: {out_path}")
 
 # ── Summary table ─────────────────────────────────────────────────────────────
-def load_paper_values(results_dir):
-    """Load paper FND/LND from summary.csv keyed by (layout, proto)."""
-    csv_path = os.path.join(results_dir, "summary.csv")
-    paper = {}
-    if not os.path.exists(csv_path):
-        return paper
-    with open(csv_path) as f:
-        header = None
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            if header is None:
-                header = line.split(",")
-                continue
-            parts = line.split(",")
-            if len(parts) < 6:
-                continue
-            try:
-                layout  = int(parts[0])
-                proto   = parts[1].strip().lower()   # ESMAC → esmac
-                fnd_p   = int(parts[4])
-                lnd_p   = int(parts[5])
-                paper[(layout, proto)] = (fnd_p, lnd_p)
-            except ValueError:
-                continue
-    return paper
-
 def make_summary_table(results_dir, layouts=(1,2,3,4)):
-    protocols   = ("esmac", "leach", "lecmac")
-    proto_names = {"esmac": "ES-MAC", "leach": "LEACH", "lecmac": "LECMAC"}
+    protocols  = ("esmac","leach","lecmac")
+    proto_names = {"esmac":"ES-MAC","leach":"LEACH","lecmac":"LECMAC"}
 
-    paper = load_paper_values(results_dir)
-
-    W = 100  # total line width
     lines = []
-    lines.append("=" * W)
-    lines.append("  WSN PROTOCOL COMPARISON — FIRST/LAST NODE DEATH ROUNDS (Sim vs Paper)")
-    lines.append("=" * W)
-    hdr = (f"{'Layout':<30} {'Protocol':<8}"
-           f" {'SimFND':>7} {'PprFND':>7} {'ΔFND':>6}"
-           f" {'SimLND':>7} {'PprLND':>7} {'ΔLND':>6}")
-    lines.append(hdr)
-    lines.append("-" * W)
+    lines.append("=" * 72)
+    lines.append("  WSN PROTOCOL COMPARISON — FIRST/LAST NODE DEATH ROUNDS")
+    lines.append("=" * 72)
+    lines.append(f"{'Layout':<30} {'Protocol':<18} {'FND':>8} {'LND':>8}")
+    lines.append("-" * 72)
 
     all_ok = True
     for lid in layouts:
         for proto in protocols:
             path = os.path.join(results_dir, f"layout{lid}", f"{proto}.txt")
             data = parse_file(path)
-
-            pname = proto_names[proto]
-            label = LAYOUT_LABELS[lid]
-
-            # Paper values (may be missing)
-            ppr_key = (lid, proto)
-            ppr_fnd, ppr_lnd = paper.get(ppr_key, (None, None))
-
             if data is None:
                 lines.append(
-                    f"  {label:<28} {pname:<8}"
-                    f" {'N/A':>7} {str(ppr_fnd) if ppr_fnd else 'N/A':>7} {'—':>6}"
-                    f" {'N/A':>7} {str(ppr_lnd) if ppr_lnd else 'N/A':>7} {'—':>6}")
+                    f"  {LAYOUT_LABELS[lid]:<28} {proto_names[proto]:<18}"
+                    f"{'N/A':>8} {'N/A':>8}")
                 all_ok = False
                 continue
-
             rounds, dead, _, _ = data
-            sim_fnd, sim_lnd = fnd_lnd(rounds, dead)
-
-            # Compute deltas (sim − paper, signed)
-            if ppr_fnd is not None and sim_fnd > 0:
-                d_fnd = f"{sim_fnd - ppr_fnd:+d}"
-            else:
-                d_fnd = "—"
-
-            if ppr_lnd is not None and sim_lnd > 0:
-                d_lnd = f"{sim_lnd - ppr_lnd:+d}"
-            else:
-                d_lnd = "—"
-
-            ppr_fnd_str = str(ppr_fnd) if ppr_fnd is not None else "N/A"
-            ppr_lnd_str = str(ppr_lnd) if ppr_lnd is not None else "N/A"
-
+            fnd, lnd = fnd_lnd(rounds, dead)
             lines.append(
-                f"  {label:<28} {pname:<8}"
-                f" {sim_fnd:>7} {ppr_fnd_str:>7} {d_fnd:>6}"
-                f" {sim_lnd:>7} {ppr_lnd_str:>7} {d_lnd:>6}")
+                f"  {LAYOUT_LABELS[lid]:<28} {proto_names[proto]:<18}"
+                f"{fnd:>8} {lnd:>8}")
         lines.append("")
 
-    lines.append("=" * W)
-    lines.append("FND = First Node Death round   LND = Last Node Death round   Δ = Sim − Paper")
+    lines.append("=" * 72)
+    lines.append("FND = First Node Death round,  LND = Last Node Death round")
     lines.append("Expected ordering (FND): ES-MAC < LEACH < LECMAC")
-    lines.append("=" * W)
+    lines.append("=" * 72)
 
     out_path = os.path.join(results_dir, "summary_table.txt")
     with open(out_path, "w") as f:

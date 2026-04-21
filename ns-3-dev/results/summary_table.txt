@@ -1,26 +1,25 @@
-====================================================================================================
-  WSN PROTOCOL COMPARISON — FIRST/LAST NODE DEATH ROUNDS (Sim vs Paper)
-  Paper: Pedditi & Debasis, IEEE AISP 2022
-====================================================================================================
-Layout                         Protocol  SimFND  PprFND   ΔFND  SimLND  PprLND   ΔLND
-----------------------------------------------------------------------------------------------------
-  Layout 1: 100 nodes / 100×100 m ES-MAC     1336     821   +515    2012     970  +1042
-  Layout 1: 100 nodes / 100×100 m LEACH      2284    2272    +12    3780    4080   -300
-  Layout 1: 100 nodes / 100×100 m LECMAC     3514    3269   +245    6000    4890  +1110
+========================================================================
+  WSN PROTOCOL COMPARISON — FIRST/LAST NODE DEATH ROUNDS
+========================================================================
+Layout                         Protocol                FND      LND
+------------------------------------------------------------------------
+  Layout 1: 100 nodes / 100×100 m ES-MAC                  60      157
+  Layout 1: 100 nodes / 100×100 m LEACH                  149      263
+  Layout 1: 100 nodes / 100×100 m LECMAC                 223      448
 
-  Layout 2: 200 nodes / 100×100 m ES-MAC     2002     718  +1284    2594    1579  +1015
-  Layout 2: 200 nodes / 100×100 m LEACH      2878    1890   +988    4551    3200  +1351
-  Layout 2: 200 nodes / 100×100 m LECMAC     4907    2673  +2234    6000    4685  +1315
+  Layout 2: 200 nodes / 100×100 m ES-MAC                  67      203
+  Layout 2: 200 nodes / 100×100 m LEACH                  156      332
+  Layout 2: 200 nodes / 100×100 m LECMAC                 288      590
 
-  Layout 3: 100 nodes / 200×200 m ES-MAC     1242     681   +561    1848    1360   +488
-  Layout 3: 100 nodes / 200×200 m LEACH      2127    2064    +63    3624    4090   -466
-  Layout 3: 100 nodes / 200×200 m LECMAC     2649    2527   +122    5942    4250  +1692
+  Layout 3: 100 nodes / 200×200 m ES-MAC                  50      148
+  Layout 3: 100 nodes / 200×200 m LEACH                  159      267
+  Layout 3: 100 nodes / 200×200 m LECMAC                 172      459
 
-  Layout 4: 200 nodes / 200×200 m ES-MAC     1471     790   +681    2518    1618   +900
-  Layout 4: 200 nodes / 200×200 m LEACH      2637    1975   +662    4763    3329  +1434
-  Layout 4: 200 nodes / 200×200 m LECMAC     3281    2732   +549    6000    4750  +1250
+  Layout 4: 200 nodes / 200×200 m ES-MAC                  56      191
+  Layout 4: 200 nodes / 200×200 m LEACH                  141      381
+  Layout 4: 200 nodes / 200×200 m LECMAC                 199      617
 
-====================================================================================================
-FND = First Node Death round   LND = Last Node Death round   Δ = Sim − Paper
+========================================================================
+FND = First Node Death round,  LND = Last Node Death round
 Expected ordering (FND): ES-MAC < LEACH < LECMAC
-====================================================================================================
+========================================================================
