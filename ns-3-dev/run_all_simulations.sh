@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # run_all_simulations.sh — LECMAC WSN Project
-# Runs all 12 simulations (3 protocols × 4 layouts) and generates plots.
+# Runs all 16 simulations (4 protocols × 4 layouts) and generates plots.
 #
 # Usage (from ns-3-dev/ directory):
 #   bash run_all_simulations.sh              # all layouts, 6000 rounds
@@ -55,12 +55,13 @@ fi
 # ── Build all 3 protocols ─────────────────────────────────────────────────────
 echo -e "\n${BOLD}=============================================${RESET}"
 echo -e "${BOLD}  LECMAC WSN Simulation — Full Run${RESET}"
+echo -e "${BOLD}  Protocols: LEACH, ES-MAC, LECMAC, LECMAC+${RESET}"
 echo -e "${BOLD}  Layouts: ${LAYOUTS[*]} | Rounds: $ROUNDS${RESET}"
 echo -e "${BOLD}=============================================${RESET}\n"
 
 info "Building simulation binaries…"
 cd "$NS3_DIR"
-./ns3 build scratch/lecmac-sim scratch/leach-sim scratch/esmac-sim
+./ns3 build scratch/lecmac-sim scratch/leach-sim scratch/esmac-sim scratch/lecmac-plus-sim
 success "Build complete."
 
 # ── Create results directories ─────────────────────────────────────────────────
@@ -69,7 +70,7 @@ for layout in "${LAYOUTS[@]}"; do
 done
 
 # ── Run simulations ───────────────────────────────────────────────────────────
-PROTOCOLS=("lecmac" "leach" "esmac")
+PROTOCOLS=("lecmac" "leach" "esmac" "lecmac_plus")
 ALL_PIDS=""
 
 start_time=$(date +%s)
@@ -84,13 +85,15 @@ for proto in "${PROTOCOLS[@]}"; do
     for layout in "${LAYOUTS[@]}"; do
         log_file="/tmp/${proto}_l${layout}.log"
 
-        # Extra args for LECMAC (disable animation for faster run)
+        # Extra args: disable animation for lecmac (has NetAnim), none for others
         extra_args=""
         if [[ "$proto" == "lecmac" ]]; then
             extra_args="--enableAnim=false"
         fi
 
-        cmd="./ns3 run \"scratch/${proto}-sim --layout=${layout} --rounds=${ROUNDS} ${extra_args}\""
+        # Map protocol name to sim script name (lecmac_plus → lecmac-plus-sim)
+        sim_name="${proto//_/-}-sim"
+        cmd="./ns3 run \"scratch/${sim_name} --layout=${layout} --rounds=${ROUNDS} ${extra_args}\""
 
         if $PARALLEL; then
             eval "$cmd" > "$log_file" 2>&1 &

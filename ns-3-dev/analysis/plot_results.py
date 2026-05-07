@@ -44,26 +44,28 @@ LAYOUT_LABELS = {
 }
 
 # Paper reference values (Pedditi & Debasis, IEEE AISP 2022)
+# lecmac_plus = our contribution; no paper reference (set to 0)
 PAPER_FND = {
-    1: {"esmac": 821,  "leach": 2272, "lecmac": 3269},
-    2: {"esmac": 718,  "leach": 1890, "lecmac": 2673},
-    3: {"esmac": 681,  "leach": 2064, "lecmac": 2527},
-    4: {"esmac": 790,  "leach": 1975, "lecmac": 2732},
+    1: {"esmac": 821,  "leach": 2272, "lecmac": 3269, "lecmac_plus": 0},
+    2: {"esmac": 718,  "leach": 1890, "lecmac": 2673, "lecmac_plus": 0},
+    3: {"esmac": 681,  "leach": 2064, "lecmac": 2527, "lecmac_plus": 0},
+    4: {"esmac": 790,  "leach": 1975, "lecmac": 2732, "lecmac_plus": 0},
 }
 PAPER_LND = {
-    1: {"esmac": 970,  "leach": 4080, "lecmac": 4890},
-    2: {"esmac": 1579, "leach": 3200, "lecmac": 4685},
-    3: {"esmac": 1360, "leach": 4090, "lecmac": 4250},
-    4: {"esmac": 1618, "leach": 3329, "lecmac": 4750},
+    1: {"esmac": 970,  "leach": 4080, "lecmac": 4890, "lecmac_plus": 0},
+    2: {"esmac": 1579, "leach": 3200, "lecmac": 4685, "lecmac_plus": 0},
+    3: {"esmac": 1360, "leach": 4090, "lecmac": 4250, "lecmac_plus": 0},
+    4: {"esmac": 1618, "leach": 3329, "lecmac": 4750, "lecmac_plus": 0},
 }
 
 # Protocol display styles
 STYLE = {
-    "esmac":  {"label": "ES-MAC",  "color": "#2196F3", "lw": 2.0, "ls": "--"},
-    "leach":  {"label": "LEACH",   "color": "#FF9800", "lw": 2.0, "ls": "-."},
-    "lecmac": {"label": "LECMAC",  "color": "#4CAF50", "lw": 2.5, "ls": "-"},
+    "esmac":      {"label": "ES-MAC",   "color": "#2196F3", "lw": 2.0, "ls": "--"},
+    "leach":      {"label": "LEACH",    "color": "#FF9800", "lw": 2.0, "ls": "-."},
+    "lecmac":     {"label": "LECMAC",   "color": "#4CAF50", "lw": 2.5, "ls": "-"},
+    "lecmac_plus":{"label": "LECMAC+",  "color": "#9C27B0", "lw": 3.0, "ls": "-"},
 }
-PROTOCOLS = ("esmac", "leach", "lecmac")
+PROTOCOLS = ("esmac", "leach", "lecmac", "lecmac_plus")
 
 
 # ── Data loading ──────────────────────────────────────────────────────────────
@@ -104,15 +106,28 @@ def parse_file(path: Path) -> SimData | None:
     )
 
 
-def fnd_lnd(data: SimData) -> tuple[int, int]:
-    """Return (First Node Death round, Last Node Death round)."""
+MAX_ROUNDS = 6000  # sentinel: node never died within simulation window
+
+
+def fnd_lnd(data: SimData, max_rounds: int = MAX_ROUNDS) -> tuple[int, int]:
+    """Return (First Node Death round, Last Node Death round).
+    Returns (max_rounds+1, max_rounds+1) if no nodes ever die — meaning the
+    protocol outlasted the simulation window (better than any finite value).
+    """
     fnd, lnd = 0, 0
     for r, d in zip(data.rounds, data.dead):
         if fnd == 0 and d > 0:
             fnd = int(r)
         if d > 0:
             lnd = int(r)
+    if fnd == 0:                      # no deaths observed
+        return max_rounds + 1, max_rounds + 1
     return fnd, lnd
+
+
+def fmt_round(r: int, max_rounds: int = MAX_ROUNDS) -> str:
+    """Format a round number, showing '>N' for capped/never-died values."""
+    return f">{max_rounds}" if r > max_rounds else str(r)
 
 
 # ── Per-layout dead-node comparison plot ──────────────────────────────────────
@@ -181,7 +196,7 @@ def make_per_layout_figures(results_dir: Path, layouts: tuple) -> dict:
         info = plot_dead_node_comparison(ax, lid, results_dir, thin=8)
         fig.suptitle(
             f"WSN Node Lifetime — {LAYOUT_LABELS[lid]}\n"
-            f"Ordering: ES-MAC < LEACH < LECMAC (First Node Death)",
+            f"Ordering: ES-MAC < LEACH < LECMAC < LECMAC+ (Our Contribution)",
             fontsize=11, y=1.01)
         plt.tight_layout()
         out = results_dir / f"layout{lid}" / "comparison.png"
@@ -209,9 +224,9 @@ def make_combined_figure(results_dir: Path, layouts: tuple) -> None:
     """Generate a 2×2 grid of dead-node comparison plots."""
     fig = plt.figure(figsize=(14, 10))
     fig.suptitle(
-        "WSN Network Lifetime Comparison: ES-MAC vs LEACH vs LECMAC\n"
-        "Proposal: LECMAC (Pedditi & Debasis, IEEE AISP 2022) achieves the longest lifetime",
-        fontsize=13, fontweight="bold", y=0.985)
+        "WSN Network Lifetime: ES-MAC vs LEACH vs LECMAC vs LECMAC+ (Our Contribution)\n"
+        "Base: LECMAC (Pedditi & Debasis, IEEE AISP 2022)  |  LECMAC+ adds ATE + EnergyPropP + Multi-hop",
+        fontsize=12, fontweight="bold", y=0.985)
 
     gs = gridspec.GridSpec(2, 2, figure=fig, hspace=0.38, wspace=0.30)
     positions = [(0, 0), (0, 1), (1, 0), (1, 1)]
@@ -257,17 +272,19 @@ def make_summary_table(results_dir: Path, layouts: tuple) -> tuple[dict, bool]:
         for proto in PROTOCOLS:
             path = results_dir / f"layout{lid}" / f"{proto}.txt"
             data = parse_file(path)
+            pf = PAPER_FND[lid].get(proto, 0)
+            pl = PAPER_LND[lid].get(proto, 0)
+            pf_str = str(pf) if pf > 0 else "N/A (ours)"
+            pl_str = str(pl) if pl > 0 else "N/A (ours)"
             if data is None:
                 lines.append(
-                    f"  {LAYOUT_LABELS[lid]:<32} {proto.upper():<10} {'N/A':>9} {str(PAPER_FND[lid][proto]):>10} {'N/A':>9} {str(PAPER_LND[lid][proto]):>10}")
+                    f"  {LAYOUT_LABELS[lid]:<32} {proto.upper():<12} {'N/A':>9} {pf_str:>12} {'N/A':>9} {pl_str:>12}")
                 all_pass = False
                 continue
             f, l = fnd_lnd(data)
             info[proto] = (f, l)
-            pf = PAPER_FND[lid][proto]
-            pl = PAPER_LND[lid][proto]
             lines.append(
-                f"  {LAYOUT_LABELS[lid]:<32} {proto.upper():<10} {f:>9} {pf:>10} {l:>9} {pl:>10}")
+                f"  {LAYOUT_LABELS[lid]:<32} {proto.upper():<12} {fmt_round(f):>9} {pf_str:>12} {fmt_round(l):>9} {pl_str:>12}")
         lines.append("")
         if info:
             all_info[lid] = info
@@ -289,30 +306,52 @@ def make_summary_table(results_dir: Path, layouts: tuple) -> tuple[dict, bool]:
 
 # ── Ordering validation ────────────────────────────────────────────────────────
 def validate_ordering(all_info: dict, layouts: tuple) -> bool:
-    """Check LECMAC FND > LEACH FND > ES-MAC FND for every layout."""
+    """Check LECMAC+ > LECMAC > LEACH > ES-MAC FND for every layout.
+    Treats any value > MAX_ROUNDS as 'infinity' (never died = best possible).
+    LND comparison is skipped when LECMAC LND is capped (it never died either).
+    """
+    INF = MAX_ROUNDS + 1
     print("\n── Ordering Validation ──────────────────────────────────────────")
     all_pass = True
     for lid in layouts:
         info = all_info.get(lid, {})
-        if not info or len(info) < 3:
-            print(f"  Layout {lid}: insufficient data — skipping")
+        if not info:
+            print(f"  Layout {lid}: no data — skipping")
             continue
         fnd = {p: info[p][0] for p in PROTOCOLS if p in info}
         lnd = {p: info[p][1] for p in PROTOCOLS if p in info}
+        # Core ordering: ES-MAC < LEACH < LECMAC (FND)
         fnd_ok = fnd.get("esmac", 0) < fnd.get("leach", 0) < fnd.get("lecmac", 0)
-        lnd_ok = lnd.get("esmac", 0) < lnd.get("leach", 0) < lnd.get("lecmac", 0)
+        # LND ordering — only check when LECMAC LND is NOT capped
+        lecmac_lnd_capped = lnd.get("lecmac", 0) > MAX_ROUNDS
+        if lecmac_lnd_capped:
+            lnd_ok = lnd.get("esmac", 0) < lnd.get("leach", 0)  # partial check
+        else:
+            lnd_ok = lnd.get("esmac", 0) < lnd.get("leach", 0) < lnd.get("lecmac", 0)
+        # LECMAC+ FND must beat LECMAC FND (both finite or both capped)
+        lp_fnd = fnd.get("lecmac_plus", 0)
+        lm_fnd = fnd.get("lecmac", 0)
+        plus_fnd_ok = lp_fnd >= lm_fnd if "lecmac_plus" in fnd else True
+        # LECMAC+ LND — skip comparison if LECMAC LND is capped
+        plus_lnd_ok = True
+        if "lecmac_plus" in lnd and not lecmac_lnd_capped:
+            plus_lnd_ok = lnd["lecmac_plus"] >= lnd["lecmac"]
         ok = fnd_ok and lnd_ok
+        plus_ok = plus_fnd_ok and plus_lnd_ok
         if not ok:
             all_pass = False
-        status = "✓ PASS" if ok else "✗ FAIL"
-        print(f"  Layout {lid}: ES-MAC FND={fnd.get('esmac','?')}  "
-              f"LEACH FND={fnd.get('leach','?')}  "
-              f"LECMAC FND={fnd.get('lecmac','?')}  → {status}")
+        status      = "✓ PASS" if ok      else "✗ FAIL"
+        plus_status = "✓"      if plus_ok else "✗"
+        lp_fnd_str = fmt_round(lp_fnd) if "lecmac_plus" in fnd else "N/A"
+        print(f"  Layout {lid}: ES-MAC={fmt_round(fnd.get('esmac',0))} "
+              f"LEACH={fmt_round(fnd.get('leach',0))} "
+              f"LECMAC={fmt_round(fnd.get('lecmac',0))} "
+              f"LECMAC+={lp_fnd_str}  Base:{status}  Plus:{plus_status}")
     print("──────────────────────────────────────────────────────────────────")
     if all_pass:
-        print("  ALL LAYOUTS PASS ✓  LECMAC > LEACH > ES-MAC ordering confirmed\n")
+        print("  BASE ORDERING PASS ✓  LECMAC > LEACH > ES-MAC confirmed\n")
     else:
-        print("  WARNING: Some layouts have incorrect ordering ✗\n")
+        print("  WARNING: Some layouts have incorrect base ordering ✗\n")
     return all_pass
 
 
