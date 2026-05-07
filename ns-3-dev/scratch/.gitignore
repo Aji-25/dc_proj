@@ -1,4 +1,4 @@
-# Ignore everything on scratch by default, except the provided examples
+# Ignore everything in scratch by default (ns-3 default)
 /*
 !.gitignore
 
@@ -6,3 +6,11 @@
 !subdir/
 !scratch-simulator.cc
 !CMakeLists.txt
+
+# ── Project source files (un-ignored explicitly) ──────────────────────────────
+!wsn-protocol-model.h
+!wsn-diag.cc
+!lecmac-sim.cc
+!leach-sim.cc
+!esmac-sim.cc
+!lecmac-plus-sim.cc
